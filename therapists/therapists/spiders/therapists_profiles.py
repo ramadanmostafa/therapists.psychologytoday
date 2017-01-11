@@ -13,17 +13,17 @@ class TherapistsProfilesSpider(scrapy.Spider):
     def parse(self, response):
         stats_urls = response.xpath('//*[@id="searchStatesCities"]/div/div[3]/div/ul/li/a/@href').extract()
         for url in stats_urls[:1]:
-            yield scrapy.Request(response.urljoin(url, self.parse_state))
+            yield scrapy.Request(response.urljoin(url), self.parse_state)
 
     def parse_state(self, response):
         therapists_prof_urls = response.xpath('//*[@id="results-page"]/div[4]/div[2]/div/div/div/div[1]/div[2]/div[1]/div/div/a/@href').extract()
         next_page = response.xpath('//*[@id="results-page"]/div[5]/div/div[2]/div/a[1]/@href').extract()
 
         for url in therapists_prof_urls[:1]:
-            yield scrapy.Request(response.urljoin(url, self.parse_therapists_prof))
+            yield scrapy.Request(response.urljoin(url), self.parse_therapists_prof)
 
         # for url in next_page[:1]:
-        #     yield scrapy.Request(response.urljoin(url, self.parse_state))
+        #     yield scrapy.Request(response.urljoin(url), self.parse_state)
 
     def parse_therapists_prof(self, response):
         item = TherapistsItem()
@@ -32,7 +32,10 @@ class TherapistsProfilesSpider(scrapy.Spider):
         item["Image"] = response.xpath('//*[@id="profilePhoto"]/img/@src').extract_first()
         item["name"] = response.xpath('//*[@id="profileContainer"]/div[2]/div[2]/div[1]/div[1]/h1/text()').extract_first().strip()
     	item["title"]  = ' '.join(remove_tags(response.xpath('//*[@id="profileContainer"]/div[2]/div[2]/div[1]/div[1]/div/h2').extract_first()).split())
-        item["Verified"] = remove_tags(response.xpath('//*[@id="profileContainer"]/div[2]/div[3]/div/div/div/div/div').extract_first()).strip()
+        try:
+            item["verified"] = remove_tags(response.xpath('//*[@id="profileContainer"]/div[2]/div[3]/div/div/div/div/div').extract_first()).strip()
+        except:
+            item["verified"] = ""
         location = filter(None, map(unicode.strip, remove_tags(response.xpath('//*[@id="profile-content"]/div/div[2]/div[1]/div/div/div[1]').extract_first()).split('\n')))
         item["Business_Name"] = location[0]
         item["Address"] = location[1]
@@ -57,7 +60,10 @@ class TherapistsProfilesSpider(scrapy.Spider):
         item["Avg_Cost_per_session"] = response.xpath('//*[@id="profile-content"]/div/div[1]/div[5]/ul/li[1]/text()').extract()[1].strip()
         item["Sliding_Scale"] = response.xpath('//*[@id="profile-content"]/div/div[1]/div[5]/ul/li[2]/text()').extract()[1].strip()
         item["Payment_Methods1"] = response.xpath('//*[@id="profile-content"]/div/div[1]/div[5]/ul/li[3]/text()').extract()[1].strip().replace('  ', '')
-        item["Accepted_Insurance_Plans"] = ' '.join(remove_tags(response.xpath('//*[@id="profile-content"]/div/div[1]/div[5]/div[1]').extract_first()).split())
+        try:
+            item["Accepted_Insurance_Plans"] = ' '.join(remove_tags(response.xpath('//*[@id="profile-content"]/div/div[1]/div[5]/div[1]').extract_first()).split())
+        except:
+            pass
         item["Issues"] =  filter(None, map(unicode.strip, remove_tags(response.xpath('//*[@id="profile-content"]/div/div[2]/div[2]/div[2]').extract_first()).split('\n')))#list
 
         focus = filter(None, map(unicode.strip, remove_tags(response.xpath('//*[@id="profile-content"]/div/div[2]/div[3]').extract_first()).split('\n')))
